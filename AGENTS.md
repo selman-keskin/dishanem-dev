@@ -49,19 +49,19 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Merkezi kontrol veritabanı:
 
-Veritabanı: dishanem_control
-Şema: app
+Veritabanı: `dishanem_db`
+Şema: `dishanem_sch`
 
 Klinik veritabanları:
 
-Veritabanı: clinic_<id>
-Şema: clinic_<id>_app
+Veritabanı: `dishanem_<klinik_kodu>_db`
+Şema: `dishanem_<klinik_kodu>_sch`
 
 Kurallar:
 
 - Her SQL işleminde hedef veritabanını açıkça belirt.
-- SQL çalıştırmadan önce current_database() ve current_schema()
-  değerlerini doğrula.
+- Her SQL işleminden önce `current_database()` değerini hedef
+  veritabanı adıyla karşılaştır ve `current_schema()` değerini doğrula.
 - Merkezi kontrol verilerini klinik veritabanına yazma.
 - Klinik hasta verilerini merkezi kontrol veritabanına yazma.
 - Klinikler arası SQL bağlantılarını kesin biçimde izole et.
@@ -223,11 +223,11 @@ CSS kuralları:
 
 ### 13.1 Merkezi Kontrol Veritabanı
 
-Database:
-dishanem_control
-
-Schema:
-app
+- Veritabanı: `dishanem_db`
+- Şema: `dishanem_sch`
+- Uygulama kullanıcısı: `dishanem_user`
+- Şema sahibi: `dishanem_owner`
+- Tablo sahibi: `dishanem_tableowner`
 
 Merkezi kontrol veritabanında:
 - Klinik kayıtları
@@ -245,37 +245,26 @@ Hasta ve tedavi verileri merkezi veritabanına yazılmaz.
 
 Her klinik için ayrı PostgreSQL database kullanılır.
 
-İsimlendirme:
+Klinik veritabanı, şeması ve rolleri için ortak ad kökü
+`dishanem_<klinik_kodu>` biçimindedir. `demo_klinik` kodlu klinik için örnekler:
 
-Database:
-clinic_<id>
+- Veritabanı: `dishanem_demo_klinik_db`
+- Şema: `dishanem_demo_klinik_sch`
+- Uygulama kullanıcısı: `dishanem_demo_klinik_user`
+- Şema sahibi: `dishanem_demo_klinik_owner`
+- Tablo sahibi: `dishanem_demo_klinik_tableowner`
 
-Schema:
-clinic_<id>_app
-
-Klinik kimliği altı basamaklı sayısal biçimde
-temsil edilir.
-
-Örnekler:
-
-Klinik 1:
-Database: clinic_000001
-Schema: clinic_000001_app
-
-Klinik 2:
-Database: clinic_000002
-Schema: clinic_000002_app
-
-Klinik 125:
-Database: clinic_000125
-Schema: clinic_000125_app
-
-Klinik ID değişmez, yeniden kullanılmaz.
+Klinik kimliği altı basamaklı sayısal biçimde temsil edilir.
+Klinik kimliği değişmez ve yeniden kullanılmaz.
 
 ### 13.3 SQL İsimlendirme Kuralları
 
 - Tüm tablo ve kolon isimleri snake_case olmalıdır.
-- Tablo isimleri İngilizce olmalıdır.
+- Veritabanı adları `_db`, şema adları `_sch` ile bitmelidir.
+- Uygulama kullanıcısı `_user`, şema sahibi `_owner`,
+  tablo sahibi `_tableowner` son ekini kullanmalıdır.
+- SQL rol takma adı `user_role` olmalıdır.
+- Tablo adları İngilizce olmalı ve `_tbl` ile bitmelidir.
 - PostgreSQL nesne isimlerinde Türkçe karakter kullanılmaz.
 - Primary key: id
 - Foreign key: <tablo_tekil_adı>_id
@@ -289,16 +278,16 @@ Klinik ID değişmez, yeniden kullanılmaz.
 
 Örnek tablolar:
 
-patients
-appointments
-treatment_plans
-treatment_items
-invoices
-payments
-users
-roles
-permissions
-audit_logs
+- `patients_tbl`
+- `appointments_tbl`
+- `treatment_plans_tbl`
+- `treatment_items_tbl`
+- `invoices_tbl`
+- `payments_tbl`
+- `users_tbl`
+- `roles_tbl`
+- `permissions_tbl`
+- `audit_logs_tbl`
 
 ### 13.4 Constraint ve Index
 
@@ -342,17 +331,18 @@ Her SQL işleminde hedef database açıkça belirtilir.
 
 Örnek merkezi bağlantı:
 
-psql -d dishanem_control
+`psql -d dishanem_db`
 
 Örnek klinik bağlantısı:
 
-psql -d clinic_000001
+`psql -d dishanem_demo_klinik_db`
 
 Her işlemden önce:
 
-SELECT current_database(), current_schema();
+`SELECT current_database(), current_schema();`
 
-Ayrıca schema/search_path doğrulanmalıdır.
+`current_database()` sonucu, işlem için açıkça belirtilen hedef veritabanı
+adıyla karşılaştırılmalıdır. Beklenen şema ve `search_path` da doğrulanmalıdır.
 
 - Yanlış database üzerinde işlem yapılmaz.
 - Migration dosyalarında hedef DB açıkça belirtilir.
